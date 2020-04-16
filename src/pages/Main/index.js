@@ -15,8 +15,10 @@ import {
     Avatar,
     Name,
     Bio,
-    ProfileButton,
+    ProfileButtonAdd,
+    ProfileButtonDelete,
     ProfileButtonText,
+    Buttons,
 } from './styles';
 
 export default class Main extends Component {
@@ -73,9 +75,14 @@ export default class Main extends Component {
             <Name>{item.name}</Name>
             <Bio>{item.bio}</Bio>
 
-            <ProfileButton onPress={() => this.handleNavigate(item)}>
-                <ProfileButtonText>Ver perfil</ProfileButtonText>
-            </ProfileButton>
+            <Buttons>
+                <ProfileButtonAdd onPress={() => this.handleNavigate(item)}>
+                    <ProfileButtonText>Ver perfil</ProfileButtonText>
+                </ProfileButtonAdd>
+                <ProfileButtonDelete onPress={() => this.handleDelete(item)}>
+                    <Icon name="delete" color="#FFF" size={20} />
+                </ProfileButtonDelete>
+            </Buttons>
         </User>
     );
 
@@ -83,6 +90,11 @@ export default class Main extends Component {
         const { navigation } = this.props;
 
         navigation.navigate('User', { user });
+    };
+
+    handleDelete = (user) => {
+        const { users } = this.state;
+        this.setState({ users: users.filter((u) => u !== user) });
     };
 
     render() {

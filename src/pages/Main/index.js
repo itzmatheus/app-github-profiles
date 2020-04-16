@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-community/async-storage';
-import { Keyboard, ActivityIndicator } from 'react-native';
+import { Keyboard, ActivityIndicator, Alert } from 'react-native';
 import PropTypes from 'prop-types';
 
 import api from '../../services/api';
@@ -46,26 +46,48 @@ export default class Main extends Component {
         }
     }
 
+    Alert = (title, msg) =>
+        Alert.alert(
+            title,
+            msg,
+            [
+                {
+                    text: 'Cancelar',
+                    style: 'cancel',
+                },
+                { text: 'OK' },
+            ],
+            { cancelable: false }
+        );
+
     handleAddUser = async () => {
         const { users, newUser } = this.state;
 
         this.setState({ loading: true });
 
-        const response = await api.get(`/users/${newUser}`);
+        await api
+            .get(`/users/${newUser}`)
+            .then((response) => {
+                const data = {
+                    name: response.data.name,
+                    login: response.data.login,
+                    bio: response.data.bio,
+                    avatar: response.data.avatar_url,
+                };
 
-        const data = {
-            name: response.data.name,
-            login: response.data.login,
-            bio: response.data.bio,
-            avatar: response.data.avatar_url,
-        };
+                this.setState({
+                    users: [...users, data],
+                    newUser: '',
+                });
+            })
+            .catch(() => {
+                this.Alert(
+                    'Usuário Inexistente',
+                    `Não foi possível encontrar o usuário ${newUser}.`
+                );
+            });
 
-        this.setState({
-            users: [...users, data],
-            newUser: '',
-            loading: false,
-        });
-
+        this.setState({ loading: false });
         Keyboard.dismiss();
     };
 

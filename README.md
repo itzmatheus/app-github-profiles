@@ -17,6 +17,7 @@ Com esse projeto é possível exibir a descrição de um perfil favorito da plat
 <ul>
     <li> <a target="_blank" href="https://yarnpkg.com/en/docs/getting-started">Yarn</a> </li>
     <li> <a target="_blank" href="https://react-native.rocketseat.dev">Ambiente Mobile para React Native</a> </li>
+    <li> <a target="_blank" href="https://github.com/infinitered/reactotron">Reactotron</a> </li>
 </ul>
 
 

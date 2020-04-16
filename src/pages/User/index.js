@@ -29,18 +29,49 @@ export default class User extends Component {
         super(props);
         this.state = {
             stars: [],
-            loading: true,
+            loading: false,
+            nextPage: '',
+            lastPage: '',
+            refreshing: false,
         };
     }
 
-    async componentDidMount() {
+    componentDidMount() {
+        this.refreshList();
+    }
+
+    refreshList = async () => {
         const { navigation } = this.props;
         const user = navigation.getParam('user');
 
-        const response = await api.get(`/users/${user.login}/starred`);
+        this.setState({ refreshing: true });
 
-        this.setState({ stars: response.data, loading: false });
-    }
+        const response = await api.get(`/users/${user.login}/starred?page=1`);
+
+        const nextPageUrl = this.getLinkUrlGitHub(response.headers.link, 0);
+        const lastPageUrl = this.getLinkUrlGitHub(response.headers.link, 1);
+
+        this.setState({
+            stars: response.data,
+            nextPage: nextPageUrl,
+            lastPage: lastPageUrl,
+            refreshing: false,
+        });
+    };
+
+    getLinkUrlGitHub = (link, index) => {
+        let url = '';
+
+        if (link) {
+            [url] = link
+                .split(',')
+                [index].replace('<', '')
+                .replace(' ', '')
+                .split('>');
+        }
+
+        return url;
+    };
 
     handleNavigate = (repository) => {
         const { navigation } = this.props;
@@ -48,9 +79,30 @@ export default class User extends Component {
         navigation.navigate('Repository', { repository });
     };
 
+    async loadPage() {
+        const { stars, nextPage, lastPage } = this.state;
+
+        if (nextPage === lastPage) return;
+
+        this.setState({ loading: true });
+
+        const response = await api.get(nextPage);
+        const { data } = response;
+
+        const nextPageUrl = this.getLinkUrlGitHub(response.headers.link, 1);
+        const lastPageUrl = this.getLinkUrlGitHub(response.headers.link, 2);
+
+        this.setState({
+            nextPage: nextPageUrl,
+            lastPage: lastPageUrl,
+            loading: false,
+            stars: [...stars, ...data],
+        });
+    }
+
     render() {
         const { navigation } = this.props;
-        const { stars, loading } = this.state;
+        const { stars, loading, refreshing } = this.state;
         const user = navigation.getParam('user');
 
         return (
@@ -61,30 +113,31 @@ export default class User extends Component {
                     <Bio>{user.bio}</Bio>
                 </Header>
 
-                {loading ? (
-                    <Loading />
-                ) : (
-                    <Stars
-                        data={stars}
-                        keyExtractor={(star) => String(star.id)}
-                        renderItem={({ item }) => (
-                            <Starred>
-                                <OwnerAvatar
-                                    source={{ uri: item.owner.avatar_url }}
-                                />
-                                <TouchableOpacity
-                                    onPress={() => this.handleNavigate(item)}
-                                    style={{ flet: 1 }}
-                                >
-                                    <Info>
-                                        <Title>{item.name}</Title>
-                                        <Author>{item.owner.login}</Author>
-                                    </Info>
-                                </TouchableOpacity>
-                            </Starred>
-                        )}
-                    />
-                )}
+                <Stars
+                    data={stars}
+                    keyExtractor={(star) => String(star.id)}
+                    onEndReachedThreshold={0.3}
+                    onEndReached={() => this.loadPage()}
+                    onRefresh={this.refreshList}
+                    refreshing={refreshing}
+                    ListFooterComponent={loading && <Loading />}
+                    renderItem={({ item }) => (
+                        <Starred>
+                            <OwnerAvatar
+                                source={{ uri: item.owner.avatar_url }}
+                            />
+                            <TouchableOpacity
+                                onPress={() => this.handleNavigate(item)}
+                                style={{ flet: 1 }}
+                            >
+                                <Info>
+                                    <Title>{item.name}</Title>
+                                    <Author>{item.owner.login}</Author>
+                                </Info>
+                            </TouchableOpacity>
+                        </Starred>
+                    )}
+                />
             </Container>
         );
     }
